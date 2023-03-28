@@ -26,7 +26,8 @@ defmodule ElixirLS.Debugger.Stacktrace do
           function: function,
           args: args,
           file: get_file(module),
-          line: break_line(pid),
+          # vscode raises invalid request when line is nil
+          line: break_line(pid) || 1,
           bindings: get_bindings(meta_pid, level),
           messages: messages
         }
@@ -47,7 +48,8 @@ defmodule ElixirLS.Debugger.Stacktrace do
                   function: function,
                   args: args,
                   file: get_file(mod),
-                  line: line,
+                  # vscode raises invalid request when line is nil
+                  line: line || 1,
                   bindings: Enum.into(bindings, %{}),
                   messages: messages
                 }
@@ -85,9 +87,10 @@ defmodule ElixirLS.Debugger.Stacktrace do
     Enum.into(:int.meta(meta_pid, :bindings, stack_level), %{})
   end
 
-  defp get_file(module) do
-    if Code.ensure_loaded?(module) do
-      to_string(module.module_info[:compile][:source])
+  def get_file(module) do
+    case ElixirSense.Location.find_mod_file(module) do
+      {module, file} -> file
+      _ -> nil
     end
   end
 end
